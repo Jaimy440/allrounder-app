@@ -11,7 +11,7 @@ Persönliche All-in-one-Web-App – läuft komplett im Browser, ohne Server und 
 | **Kalender** | Monatsansicht, Termine mit Uhrzeit, Farbe und Wiederholung; zeigt auch Prüfungen und fällige Board-Karten |
 | **Training** | Wochenplan (Mo–So) mit Übungen, Sätzen, Wiederholungen, Gewicht; Abhaken, Training abschließen, Verlauf & Statistik |
 | **Board** | Kanban wie Trello: mehrere Boards, Spalten, Karten per Drag & Drop, Labels, Fälligkeitsdatum |
-| **Berufsschule** | Komplett eingerichtet für *Elektroniker/-in für Geräte und Systeme*: alle 13 Lernfelder (nach Ausbildungsjahr, mit Stunden), je mit Ziel, Themen-Checkliste, Lernzettel mit Formeln und Karteikarten (Leitner-System); dazu WiSo, Deutsch, Technical English und Prüfungsvorbereitung. Prüfungs-/Klassenarbeitstermine. Inhalte in `js/egs-data.js` |
+| **Berufsschule** | Komplett eingerichtet für *Elektroniker/-in für Geräte und Systeme* nach dem **hessischen Lehrplan** (Handreichung des Hessischen Kultusministeriums): alle 13 Lernfelder (nach Ausbildungsjahr, mit Stunden), je mit Ziel, Themen-Checkliste, Lernzettel mit Formeln und Karteikarten (Leitner-System); dazu Politik und Wirtschaft, Deutsch, Technical English und Prüfungsvorbereitung. Prüfungs-/Klassenarbeitstermine. Inhalte in `js/egs-data.js` |
 | **Steuerkreis** | Simulator für Schützsteuerungen: Stromlaufplan zeichnen (Schließer, Öffner, Parallelzweige, Schütze, Zeitrelais an-/abfallverzögert, Meldeleuchten) und live simulieren. Vorlagen: Tippbetrieb, Selbsthaltung, Wendeschütz, Stern-Dreieck, Folgeschaltung, Treppenlicht |
 | **Einstellungen** | Hell/Dunkel, Sicherung als JSON herunterladen/einspielen, alles zurücksetzen |
 

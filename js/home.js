@@ -19,7 +19,7 @@ App.register('home', {
     const done = Training.todayDone();
     const trainedToday = tr.log.some(l => l.date === today);
 
-    if (!Learn.load().egsInstalled) Learn.installEGS();
+    if ((Learn.load().egsInstalled || 0) < Learn.EGS_VERSION) Learn.installEGS();
     const learn = Learn.load();
     const due = Learn.due(learn.cards).length;
     const nextExam = learn.exams.filter(x => x.date >= today).sort((a, b) => a.date.localeCompare(b.date))[0];

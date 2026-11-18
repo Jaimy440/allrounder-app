@@ -1,10 +1,12 @@
-/* Lehrplan „Elektroniker/-in für Geräte und Systeme“
- * Grundlage: KMK-Rahmenlehrplan (Beschluss 16.05.2003 i. d. F. vom 23.02.2018), 13 Lernfelder, 1020 Std.
- * Die Bundesländer setzen das teils leicht abweichend um (z. B. Bayern) – Reihenfolge/Stunden ggf. anpassen.
+/* Lehrplan „Elektroniker/-in für Geräte und Systeme“ – Hessen
+ * Grundlage: Handreichung zum Rahmenlehrplan Berufsschule des Hessischen Kultusministeriums (2024),
+ * die den KMK-Rahmenlehrplan (16.05.2003 i. d. F. vom 23.02.2018) umsetzt: 13 Lernfelder, 1020 Std.
  * Inhalte, Lernzettel und Karteikarten sind Lernhilfen und ersetzen nicht Fachbuch, Tabellenbuch und Normen.
  */
 const EGS = {
   name: 'Elektroniker/-in für Geräte und Systeme',
+  state: 'Hessen',
+  source: 'Handreichung Rahmenlehrplan Berufsschule, Hessisches Kultusministerium (2024)',
   subjects: [
     /* ======================= 1. Ausbildungsjahr ======================= */
     {
@@ -382,7 +384,7 @@ const EGS = {
     /* ======================= 3. Ausbildungsjahr ======================= */
     {
       key: 'egs-lf9', lf: 9, year: 3, hours: 100, color: 'orange',
-      name: 'LF 9 – Geräte und Systeme in Stand halten',
+      name: 'LF 9 – Geräte und Systeme instand halten',
       goal: 'Instandhaltungsmaßnahmen planen und durchführen, Fehler an Geräten und Systemen systematisch eingrenzen und beheben, Geräte nach Instandsetzung prüfen und die Arbeiten dokumentieren und mit dem Kunden kommunizieren.',
       topics: [
         'Instandhaltung nach DIN 31051: Wartung, Inspektion, Instandsetzung, Verbesserung',
@@ -532,7 +534,7 @@ const EGS = {
     },
     {
       key: 'egs-lf13', lf: 13, year: 4, hours: 60, color: 'purple',
-      name: 'LF 13 – Fertigungs- und Prüfsysteme in Stand halten',
+      name: 'LF 13 – Fertigungs- und Prüfsysteme instand halten',
       goal: 'Die Instandhaltung von Fertigungs- und Prüfsystemen planen und organisieren, Störungen an vernetzten Anlagen diagnostizieren und beheben, Zustandsüberwachung einsetzen, elektrische Ausrüstung von Maschinen prüfen und Verbesserungen vorschlagen.',
       topics: [
         'Instandhaltungsplanung und Wartungspläne für Anlagen',
@@ -569,8 +571,8 @@ const EGS = {
     /* ======================= Allgemeinbildende Fächer ======================= */
     {
       key: 'egs-wiso', year: 0, hours: null, color: 'yellow',
-      name: 'Wirtschafts- und Sozialkunde',
-      goal: 'Ausbildung, Arbeitsrecht, soziale Sicherung, Betrieb und Wirtschaft – prüfungsrelevant in der Abschlussprüfung Teil 2.',
+      name: 'Politik und Wirtschaft (PoWi)',
+      goal: 'In Hessen als Fach „Politik und Wirtschaft“ unterrichtet: Ausbildung, Arbeitsrecht, soziale Sicherung, Betrieb, Wirtschaft und Politik – prüfungsrelevant im Prüfungsbereich „Wirtschafts- und Sozialkunde“ der Abschlussprüfung Teil 2.',
       topics: [
         'Duales Ausbildungssystem, Berufsbildungsgesetz (BBiG)',
         'Ausbildungsvertrag: Rechte und Pflichten, Probezeit, Kündigung',
@@ -583,7 +585,8 @@ const EGS = {
         'Rechtsformen von Unternehmen',
         'Kaufvertrag, Gewährleistung, Verbraucherschutz',
         'Wirtschaftskreislauf, Markt und Preisbildung',
-        'Politisches System der Bundesrepublik Deutschland'
+        'Politisches System der Bundesrepublik Deutschland',
+        'Land Hessen: Landesverfassung, Landtag, Landesregierung (Wiesbaden)'
       ],
       formulas: [],
       cards: [
@@ -663,9 +666,9 @@ const EGS = {
     {
       key: 'egs-pruefung', year: 0, hours: null, color: 'red',
       name: 'Prüfungsvorbereitung (AP Teil 1 & 2)',
-      goal: 'Überblick über die gestreckte Abschlussprüfung. Genaue Termine, Gewichtungen und Regeln immer bei der zuständigen IHK bzw. in der Ausbildungsordnung prüfen!',
+      goal: 'Überblick über die gestreckte Abschlussprüfung. Die Prüfung nimmt die zuständige hessische IHK ab (nicht die Berufsschule) – Termine, Gewichtungen und Regeln dort bzw. in der Ausbildungsordnung prüfen!',
       topics: [
-        'Ablauf und Termine der Abschlussprüfung Teil 1 bei der IHK erfragen',
+        'Ablauf und Termine der Abschlussprüfung Teil 1 bei der zuständigen hessischen IHK erfragen',
         'Prüfungsbereiche Teil 1: Arbeitsaufgabe mit situativen Gesprächsphasen + schriftliche Aufgaben',
         'Inhalte Teil 1 entsprechen v. a. LF 1–6 bzw. den ersten 18 Ausbildungsmonaten',
         'Variante für Teil 2 wählen: betrieblicher Auftrag oder praktische Aufgabe',

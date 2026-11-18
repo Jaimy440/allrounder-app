@@ -1,7 +1,7 @@
 /* Lernbereich Berufsschule: Lernfelder/Fächer, Themen-Checklisten, Karteikarten (Leitner), Lernzettel, Prüfungen */
 const Learn = {
   INTERVALS: [0, 1, 2, 4, 7, 14], // Tage bis zur nächsten Abfrage je Fach (Box 1–5)
-  EGS_VERSION: 1,
+  EGS_VERSION: 2,
   YEARS: { 1: '1. Ausbildungsjahr', 2: '2. Ausbildungsjahr', 3: '3. Ausbildungsjahr', 4: '4. Ausbildungsjahr', 0: 'Allgemeinbildende Fächer' },
 
   load() {
@@ -52,7 +52,7 @@ const Learn = {
         addedCards++;
       });
     });
-    d.profession = EGS.name;
+    d.profession = EGS.name + (EGS.state ? ' · Lehrplan ' + EGS.state : '');
     d.egsInstalled = this.EGS_VERSION;
     this.save(d);
     return { addedSubjects, addedCards };
@@ -82,7 +82,7 @@ App.register('learn', {
   renderOverview() {
     const el = this.el;
     let d = Learn.load();
-    if (!d.egsInstalled) { Learn.installEGS(); d = Learn.load(); }
+    if ((d.egsInstalled || 0) < Learn.EGS_VERSION) { Learn.installEGS(); d = Learn.load(); }
     const today = D.today();
     const exams = d.exams.filter(x => x.date >= today).sort((a, b) => a.date.localeCompare(b.date));
     const past = d.exams.filter(x => x.date < today).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
@@ -145,7 +145,7 @@ App.register('learn', {
 
       ${d.subjects.length ? '' : `<div class="card">${UI.empty('Noch keine Fächer angelegt.',
         `<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
-          <button class="btn primary" data-act="egs">Lehrplan Elektroniker/-in für Geräte und Systeme anlegen</button>
+          <button class="btn primary" data-act="egs">Lehrplan Elektroniker/-in für Geräte und Systeme (Hessen) anlegen</button>
           <button class="btn" data-act="addsub2">${icon('plus')} Eigenes Fach</button></div>`)}</div>`}
 
       <div class="grid grid-2" style="margin-top:8px">
@@ -162,7 +162,7 @@ App.register('learn', {
             einen <b>Lernzettel</b> mit Zielen und Formeln für eigene Mitschriften und <b>Karteikarten</b>.
             Die Karten werden nach dem Leitner-System abgefragt: Gewusste Karten kommen seltener dran (1 → 2 → 4 → 7 → 14 Tage),
             nicht gewusste sofort wieder. Prüfungstermine erscheinen automatisch im Kalender.
-            <br><br>Grundlage ist der KMK-Rahmenlehrplan (13 Lernfelder, 1020 Std.). Dein Bundesland kann bei Reihenfolge und Stunden etwas abweichen.
+            <br><br>Grundlage ist die <b>Handreichung zum Rahmenlehrplan des Hessischen Kultusministeriums</b> (13 Lernfelder, 1020 Std.).
           </p>
         </div>
       </div>`;
