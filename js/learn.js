@@ -1,6 +1,9 @@
-/* Lernbereich Berufsschule: Fächer, Karteikarten (Leitner), Lernzettel, Prüfungen */
+/* Lernbereich Berufsschule: Lernfelder/Fächer, Themen-Checklisten, Karteikarten (Leitner), Lernzettel, Prüfungen */
 const Learn = {
   INTERVALS: [0, 1, 2, 4, 7, 14], // Tage bis zur nächsten Abfrage je Fach (Box 1–5)
+  EGS_VERSION: 1,
+  YEARS: { 1: '1. Ausbildungsjahr', 2: '2. Ausbildungsjahr', 3: '3. Ausbildungsjahr', 4: '4. Ausbildungsjahr', 0: 'Allgemeinbildende Fächer' },
+
   load() {
     const d = Store.get('learn', { subjects: [], cards: [], exams: [] });
     d.subjects ||= []; d.cards ||= []; d.exams ||= [];
@@ -9,45 +12,63 @@ const Learn = {
   save(d) { Store.set('learn', d); },
   due(cards) { const t = D.today(); return cards.filter(c => (c.next || t) <= t); },
 
-  starter() {
+  /* Kurzname ohne „LF n – “ */
+  short(s) { return s.lf ? s.name.replace(/^LF\s*\d+\s*[–-]\s*/, '') : s.name; },
+
+  sheet(def) {
+    let t = `${def.name}\n${'='.repeat(Math.min(60, def.name.length))}\n\n`;
+    if (def.year) t += `${this.YEARS[def.year]}${def.hours ? ` · ${def.hours} Unterrichtsstunden` : ''}\n\n`;
+    t += `ZIEL\n${def.goal}\n\n`;
+    t += `INHALTE\n${def.topics.map(x => '• ' + x).join('\n')}\n`;
+    if (def.formulas && def.formulas.length) t += `\nFORMELN & MERKE\n${def.formulas.map(x => '  ' + x).join('\n')}\n`;
+    t += `\nEIGENE MITSCHRIFTEN\n\n`;
+    return t;
+  },
+
+  /* Lehrplan Elektroniker/-in für Geräte und Systeme anlegen bzw. ergänzen (idempotent) */
+  installEGS() {
     const d = this.load();
-    const add = (name, color, cards) => {
-      let s = d.subjects.find(x => x.name === name);
-      if (!s) { s = { id: uid(), name, color, notes: '' }; d.subjects.push(s); }
-      cards.forEach(([q, a]) => d.cards.push({ id: uid(), sid: s.id, q, a, box: 1, next: D.today() }));
-    };
-    add('Elektrotechnik', 'orange', [
-      ['Ohmsches Gesetz', 'U = R · I\nR = U / I\nI = U / R'],
-      ['Elektrische Leistung (Gleichstrom)', 'P = U · I = I² · R = U² / R'],
-      ['Reihenschaltung von Widerständen', 'Rges = R1 + R2 + …\nStrom überall gleich, Spannungen teilen sich auf.'],
-      ['Parallelschaltung von Widerständen', '1/Rges = 1/R1 + 1/R2 + …\nSpannung überall gleich, Ströme teilen sich auf.'],
-      ['Leitungswiderstand', 'R = (l · ρ) / A = l / (κ · A)\nKupfer: κ ≈ 56 m/(Ω·mm²)'],
-      ['Wirkleistung im Drehstromnetz', 'P = √3 · U · I · cos φ'],
-      ['Die 5 Sicherheitsregeln', '1. Freischalten\n2. Gegen Wiedereinschalten sichern\n3. Spannungsfreiheit feststellen (allpolig)\n4. Erden und kurzschließen\n5. Benachbarte, unter Spannung stehende Teile abdecken oder abschranken'],
-      ['Was ist eine Selbsthaltung?', 'Ein Schließer des Schützes liegt parallel zum Ein-Taster. Nach dem Loslassen hält sich das Schütz über den eigenen Kontakt, bis der Aus-Taster (Öffner) den Stromkreis unterbricht.'],
-      ['Wozu dient eine Verriegelung bei der Wendeschützschaltung?', 'Sie verhindert, dass beide Schütze gleichzeitig anziehen (Kurzschluss zwischen zwei Außenleitern). Schützverriegelung: Öffner von K2 im Strompfad von K1 und umgekehrt.'],
-      ['Kennbuchstaben: K, S, F, H, M, Q', 'K = Relais/Schütz (Hilfsschütz)\nS = Taster/Schalter\nF = Schutzeinrichtung (Sicherung, Motorschutz)\nH = Meldeleuchte\nM = Motor\nQ = Leistungsschalter / Hauptschütz'],
-      ['Kontaktbezeichnung Öffner / Schließer', 'Schließer: Endziffern 3–4 (z. B. 13/14)\nÖffner: Endziffern 1–2 (z. B. 21/22)\nSpule: A1/A2'],
-      ['Warum Stern-Dreieck-Anlauf?', 'Reduziert den Anlaufstrom auf ca. 1/3 (Spannung je Wicklung nur U/√3). Nach Hochlauf wird auf Dreieck umgeschaltet.']
-    ]);
-    add('Mathematik', 'blue', [
-      ['Satz des Pythagoras', 'a² + b² = c²  (c = Hypotenuse)'],
-      ['Dreisatz – Schema', '1. Gegebenes notieren\n2. Auf 1 Einheit schließen\n3. Auf gesuchte Menge hochrechnen'],
-      ['Prozentwert', 'W = G · p / 100']
-    ]);
-    add('Wirtschaft & Soziales', 'green', [
-      ['Duales System', 'Ausbildung an zwei Lernorten: Betrieb (Praxis) und Berufsschule (Theorie).'],
-      ['Wie lang ist die Probezeit in der Ausbildung?', 'Mindestens 1 Monat, höchstens 4 Monate (§ 20 BBiG).']
-    ]);
-    add('Deutsch', 'purple', []);
+    const legacy = { 'egs-wiso': 'Wirtschaft & Soziales', 'egs-deutsch': 'Deutsch' };
+    let addedSubjects = 0, addedCards = 0;
+    EGS.subjects.forEach(def => {
+      let s = d.subjects.find(x => x.key === def.key)
+        || (legacy[def.key] && d.subjects.find(x => !x.key && x.name === legacy[def.key]));
+      if (!s) {
+        s = { id: uid(), notes: '' };
+        d.subjects.push(s);
+        addedSubjects++;
+      }
+      Object.assign(s, {
+        key: def.key, name: def.name, color: s.color || def.color,
+        lf: def.lf || null, year: def.year, hours: def.hours, goal: def.goal
+      });
+      s.topics ||= [];
+      def.topics.forEach(text => { if (!s.topics.some(t => t.text === text)) s.topics.push({ id: uid(), text, done: false }); });
+      if (!s.notes || !s.notes.trim()) s.notes = this.sheet(def);
+      const have = new Set(d.cards.filter(c => c.sid === s.id).map(c => c.q));
+      def.cards.forEach(([q, a]) => {
+        if (have.has(q)) return;
+        d.cards.push({ id: uid(), sid: s.id, q, a, box: 1, next: D.today() });
+        addedCards++;
+      });
+    });
+    d.profession = EGS.name;
+    d.egsInstalled = this.EGS_VERSION;
     this.save(d);
+    return { addedSubjects, addedCards };
+  },
+
+  /* Sortierung: Lernfelder nach Nummer, dann allgemeinbildend, dann eigene */
+  ordered(subjects) {
+    const rank = s => s.lf ? s.lf : s.year === 0 ? 100 : 200;
+    return [...subjects].sort((a, b) => rank(a) - rank(b));
   }
 };
 
 App.register('learn', {
   title: 'Berufsschule',
   subject: null,
-  tab: 'cards',
+  tab: 'topics',
   session: null,
 
   render(el) {
@@ -60,43 +81,74 @@ App.register('learn', {
   /* ---------- Übersicht ---------- */
   renderOverview() {
     const el = this.el;
-    const d = Learn.load();
+    let d = Learn.load();
+    if (!d.egsInstalled) { Learn.installEGS(); d = Learn.load(); }
     const today = D.today();
     const exams = d.exams.filter(x => x.date >= today).sort((a, b) => a.date.localeCompare(b.date));
     const past = d.exams.filter(x => x.date < today).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
     const allDue = Learn.due(d.cards).length;
+    const lfs = d.subjects.filter(s => s.lf);
+    const topicsAll = lfs.flatMap(s => s.topics || []);
+    const topicsDone = topicsAll.filter(t => t.done).length;
+
+    const groups = [1, 2, 3, 4, 0].map(y => ({ y, list: Learn.ordered(d.subjects.filter(s => s.year === y)) }))
+      .filter(g => g.list.length);
+    const other = d.subjects.filter(s => s.year == null);
+    if (other.length) groups.push({ y: null, list: other });
+
+    const card = s => {
+      const cards = d.cards.filter(c => c.sid === s.id);
+      const due = Learn.due(cards).length;
+      const tp = s.topics || [];
+      const tDone = tp.filter(t => t.done).length;
+      return `<button class="card subject-card" data-id="${s.id}" style="--chip:var(--c-${s.color})">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          ${s.lf ? `<span class="tag" style="background:var(--c-${s.color});color:#fff">LF ${s.lf}</span>` : ''}
+          ${s.hours ? `<span class="muted small">${s.hours} Std.</span>` : ''}
+        </div>
+        <h3>${esc(Learn.short(s))}</h3>
+        <div class="counts">
+          <span class="tag">${cards.length} Karten</span>
+          ${cards.length ? (due ? `<span class="tag warn">${due} fällig</span>` : `<span class="tag ok">gelernt</span>`) : ''}
+          ${tp.length ? `<span class="tag">${tDone}/${tp.length} Themen</span>` : ''}
+        </div>
+        ${tp.length ? `<div class="progress"><div style="width:${Math.round(tDone / tp.length * 100)}%"></div></div>` : ''}
+      </button>`;
+    };
 
     el.innerHTML = `
       <div class="page-head">
         <div style="margin-right:auto">
           <h1>Berufsschule</h1>
-          <div class="page-sub">${d.cards.length} Karteikarten · ${allDue} heute fällig</div>
+          <div class="page-sub">${d.profession ? esc(d.profession) + ' · ' : ''}${d.cards.length} Karteikarten · ${allDue} heute fällig</div>
         </div>
         ${allDue ? `<button class="btn primary" data-act="learnall">${icon('play')} Alle fälligen lernen</button>` : ''}
         <button class="btn" data-act="addsub">${icon('plus')} Fach</button>
       </div>
-      <div class="grid grid-3" id="subjects">
-        ${d.subjects.map(s => {
-          const cards = d.cards.filter(c => c.sid === s.id);
-          const due = Learn.due(cards).length;
-          const mastered = cards.filter(c => c.box >= 5).length;
-          return `<button class="card subject-card" data-id="${s.id}" style="--chip:var(--c-${s.color})">
-            <h2>${esc(s.name)}</h2>
-            <div class="counts">
-              <span class="tag">${cards.length} Karten</span>
-              ${due ? `<span class="tag warn">${due} fällig</span>` : `<span class="tag ok">alles gelernt</span>`}
-              ${mastered ? `<span class="tag">${mastered} sicher</span>` : ''}
-            </div>
-            ${cards.length ? `<div class="progress"><div style="width:${Math.round(cards.reduce((a, c) => a + (c.box - 1), 0) / (cards.length * 4) * 100)}%"></div></div>` : ''}
-          </button>`;
-        }).join('')}
-      </div>
+
+      ${lfs.length ? `<div class="card card-pad" style="margin-bottom:20px;display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+        <div style="flex:1;min-width:220px">
+          <div style="font-weight:650;margin-bottom:6px">Lehrplan-Fortschritt: ${topicsDone} von ${topicsAll.length} Themen abgehakt</div>
+          <div class="progress"><div style="width:${topicsAll.length ? Math.round(topicsDone / topicsAll.length * 100) : 0}%"></div></div>
+        </div>
+        <button class="btn sm ghost" data-act="egs" title="Fehlende Lernfelder, Themen und Karten ergänzen – eigene Inhalte bleiben erhalten">Lehrplan ergänzen</button>
+      </div>` : ''}
+
+      ${groups.map(g => `
+        <section style="margin-bottom:22px">
+          <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:10px">
+            <h2>${g.y === null ? 'Weitere Fächer' : Learn.YEARS[g.y]}</h2>
+            ${g.y ? `<span class="muted small">${g.list.reduce((a, s) => a + (s.hours || 0), 0)} Std.</span>` : ''}
+          </div>
+          <div class="grid grid-3">${g.list.map(card).join('')}</div>
+        </section>`).join('')}
+
       ${d.subjects.length ? '' : `<div class="card">${UI.empty('Noch keine Fächer angelegt.',
         `<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
-          <button class="btn primary" data-act="starter">Beispiel-Fächer mit Karteikarten anlegen</button>
+          <button class="btn primary" data-act="egs">Lehrplan Elektroniker/-in für Geräte und Systeme anlegen</button>
           <button class="btn" data-act="addsub2">${icon('plus')} Eigenes Fach</button></div>`)}</div>`}
 
-      <div class="grid grid-2" style="margin-top:16px">
+      <div class="grid grid-2" style="margin-top:8px">
         <div class="card card-pad">
           <div class="card-head"><h2>Prüfungen & Klassenarbeiten</h2>
             <button class="btn sm" data-act="addexam" ${d.subjects.length ? '' : 'disabled'}>${icon('plus')} Termin</button></div>
@@ -106,20 +158,26 @@ App.register('learn', {
         <div class="card card-pad">
           <div class="card-head"><h2>So funktioniert's</h2></div>
           <p class="muted small" style="line-height:1.7">
-            Karteikarten werden nach dem <b>Leitner-System</b> abgefragt: Gewusste Karten wandern ein Fach weiter und kommen
-            seltener dran (1 → 2 → 4 → 7 → 14 Tage). Nicht gewusste Karten fallen zurück in Fach 1 und kommen sofort wieder.
-            Pro Fach gibt's außerdem einen Lernzettel für Mitschriften. Prüfungstermine erscheinen automatisch im Kalender.
+            Jedes <b>Lernfeld</b> hat eine <b>Themen-Checkliste</b> (abhaken, was im Unterricht dran war bzw. was du kannst),
+            einen <b>Lernzettel</b> mit Zielen und Formeln für eigene Mitschriften und <b>Karteikarten</b>.
+            Die Karten werden nach dem Leitner-System abgefragt: Gewusste Karten kommen seltener dran (1 → 2 → 4 → 7 → 14 Tage),
+            nicht gewusste sofort wieder. Prüfungstermine erscheinen automatisch im Kalender.
+            <br><br>Grundlage ist der KMK-Rahmenlehrplan (13 Lernfelder, 1020 Std.). Dein Bundesland kann bei Reihenfolge und Stunden etwas abweichen.
           </p>
         </div>
       </div>`;
 
-    const on = (sel, fn) => { const b = el.querySelector(sel); if (b) b.onclick = fn; };
+    const on = (sel, fn) => el.querySelectorAll(sel).forEach(b => { b.onclick = fn; });
     on('[data-act=addsub]', () => this.editSubject(null));
     on('[data-act=addsub2]', () => this.editSubject(null));
-    on('[data-act=starter]', () => { Learn.starter(); this.render(el); UI.toast('Beispiel-Fächer angelegt'); });
+    on('[data-act=egs]', () => {
+      const r = Learn.installEGS();
+      this.render(el);
+      UI.toast(r.addedSubjects || r.addedCards ? `${r.addedSubjects} Fächer und ${r.addedCards} Karten ergänzt` : 'Lehrplan ist vollständig');
+    });
     on('[data-act=addexam]', () => this.editExam(null));
     on('[data-act=learnall]', () => { this.subject = null; this.startSession(null, 'due'); });
-    el.querySelectorAll('.subject-card').forEach(b => b.onclick = () => { this.subject = b.dataset.id; this.tab = 'cards'; this.render(el); });
+    el.querySelectorAll('.subject-card').forEach(b => b.onclick = () => { this.subject = b.dataset.id; this.tab = 'topics'; this.render(el); });
     el.querySelectorAll('[data-exam]').forEach(b => b.onclick = () => {
       this.editExam(Learn.load().exams.find(x => x.id === b.dataset.exam));
     });
@@ -133,7 +191,7 @@ App.register('learn', {
       <span class="dot" style="background:var(--c-${s ? s.color : 'gray'})"></span>
       <div style="flex:1;min-width:0">
         <div style="font-weight:600">${esc(x.title)}</div>
-        <div class="muted small">${esc(s ? s.name : '–')} · ${esc(D.fmt(x.date))}</div>
+        <div class="muted small">${esc(s ? (s.lf ? 'LF ' + s.lf : s.name) : '–')} · ${esc(D.fmt(x.date))}</div>
       </div>
       <span class="tag ${cls}">${esc(D.relative(x.date))}</span>
     </div>`;
@@ -169,7 +227,7 @@ App.register('learn', {
       title: x ? 'Prüfung bearbeiten' : 'Neue Prüfung / Klassenarbeit',
       fields: [
         { name: 'title', label: 'Titel', required: true, placeholder: 'z. B. Klassenarbeit Schützschaltungen' },
-        { name: 'sid', label: 'Fach', type: 'select', half: true, options: d.subjects.map(s => [s.id, s.name]) },
+        { name: 'sid', label: 'Fach', type: 'select', half: true, options: Learn.ordered(d.subjects).map(s => [s.id, s.name]) },
         { name: 'date', label: 'Datum', type: 'date', required: true, half: true },
         { name: 'note', label: 'Themen / Notiz', type: 'textarea', rows: 3 }
       ],
@@ -196,10 +254,12 @@ App.register('learn', {
       <div class="page-head">
         <button class="icon-btn" data-act="back" title="Zurück">${icon('chevL')}</button>
         <div style="margin-right:auto">
-          <h1><span class="dot" style="background:var(--c-${s.color});width:12px;height:12px;vertical-align:middle;margin-right:6px"></span>${esc(s.name)}</h1>
+          ${s.lf ? `<div class="muted small" style="font-weight:650">Lernfeld ${s.lf} · ${esc(Learn.YEARS[s.year])}${s.hours ? ' · ' + s.hours + ' Std.' : ''}</div>` : ''}
+          <h1><span class="dot" style="background:var(--c-${s.color});width:12px;height:12px;vertical-align:middle;margin-right:6px"></span>${esc(Learn.short(s))}</h1>
         </div>
         <button class="icon-btn" data-act="editsub" title="Fach bearbeiten">${icon('edit')}</button>
         <div class="seg">
+          <button data-tab="topics" class="${this.tab === 'topics' ? 'active' : ''}">Themen</button>
           <button data-tab="cards" class="${this.tab === 'cards' ? 'active' : ''}">Karteikarten</button>
           <button data-tab="learn" class="${this.tab === 'learn' ? 'active' : ''}">Lernen${due.length ? ` (${due.length})` : ''}</button>
           <button data-tab="notes" class="${this.tab === 'notes' ? 'active' : ''}">Lernzettel</button>
@@ -216,10 +276,57 @@ App.register('learn', {
     });
 
     const body = el.querySelector('#learn-body');
-    if (this.tab === 'cards') this.drawCards(body, s, cards);
+    if (this.tab === 'topics') this.drawTopics(body, s);
+    else if (this.tab === 'cards') this.drawCards(body, s, cards);
     else if (this.tab === 'notes') this.drawNotes(body, s);
     else if (this.session) this.drawSession(body);
     else this.drawLearnStart(body, s, cards, due);
+  },
+
+  drawTopics(body, s) {
+    const tp = s.topics || [];
+    const done = tp.filter(t => t.done).length;
+    body.innerHTML = `
+      <div class="grid" style="grid-template-columns:minmax(0,1fr);gap:16px">
+        ${s.goal ? `<div class="card card-pad"><div class="card-head"><h3>Ziel des Lernfelds</h3></div><p style="line-height:1.6">${esc(s.goal)}</p></div>` : ''}
+        <div class="card card-pad">
+          <div class="card-head"><h3>Themen</h3><span class="muted small">${done}/${tp.length} erledigt</span></div>
+          ${tp.length ? `<div class="progress" style="margin-bottom:8px"><div style="width:${Math.round(done / tp.length * 100)}%"></div></div>` : ''}
+          <div class="list">
+            ${tp.map(t => `
+              <div class="ex-row ${t.done ? 'done' : ''}" data-id="${t.id}" style="padding:9px 4px">
+                <button class="ex-check" data-act="toggle" title="Abhaken">${icon('check')}</button>
+                <div class="name" style="flex:1;font-weight:500">${esc(t.text)}</div>
+                <button class="icon-btn" data-act="del" title="Thema entfernen">${icon('trash')}</button>
+              </div>`).join('') || UI.empty('Noch keine Themen.')}
+          </div>
+          <form id="topic-add" style="display:flex;gap:8px;margin-top:12px">
+            <input class="input" name="t" placeholder="Eigenes Thema hinzufügen…" required>
+            <button class="btn" type="submit">${icon('plus')}</button>
+          </form>
+        </div>
+      </div>`;
+    const mutate = fn => {
+      const d = Learn.load();
+      const subj = d.subjects.find(x => x.id === s.id);
+      subj.topics ||= [];
+      fn(subj);
+      Learn.save(d);
+      this.render(this.el);
+    };
+    body.querySelectorAll('[data-act=toggle]').forEach(b => b.onclick = () => {
+      const id = b.closest('.ex-row').dataset.id;
+      mutate(subj => { const t = subj.topics.find(x => x.id === id); t.done = !t.done; });
+    });
+    body.querySelectorAll('[data-act=del]').forEach(b => b.onclick = () => {
+      const id = b.closest('.ex-row').dataset.id;
+      mutate(subj => { subj.topics = subj.topics.filter(x => x.id !== id); });
+    });
+    body.querySelector('#topic-add').onsubmit = e => {
+      e.preventDefault();
+      const v = e.target.t.value.trim();
+      if (v) mutate(subj => subj.topics.push({ id: uid(), text: v, done: false }));
+    };
   },
 
   drawCards(body, s, cards) {

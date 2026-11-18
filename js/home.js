@@ -19,6 +19,7 @@ App.register('home', {
     const done = Training.todayDone();
     const trainedToday = tr.log.some(l => l.date === today);
 
+    if (!Learn.load().egsInstalled) Learn.installEGS();
     const learn = Learn.load();
     const due = Learn.due(learn.cards).length;
     const nextExam = learn.exams.filter(x => x.date >= today).sort((a, b) => a.date.localeCompare(b.date))[0];
@@ -77,12 +78,13 @@ App.register('home', {
             const n = D.diffDays(today, nextExam.date);
             return `<div class="list-item" style="padding-top:0">
               <div style="flex:1"><div class="muted small">Nächste Prüfung</div><div style="font-weight:600">${esc(nextExam.title)}</div>
-              <div class="muted small">${esc(s ? s.name : '')} · ${esc(D.fmt(nextExam.date))}</div></div>
+              <div class="muted small">${esc(s ? (s.lf ? 'LF ' + s.lf : s.name) : '')} · ${esc(D.fmt(nextExam.date))}</div></div>
               <span class="tag ${n <= 3 ? 'danger' : n <= 7 ? 'warn' : ''}">${esc(D.relative(nextExam.date))}</span></div>`;
           })() : '<p class="muted small" style="margin-bottom:10px">Keine Prüfungen eingetragen.</p>'}
-          ${learn.subjects.length ? `<div class="list">${learn.subjects.slice(0, 5).map(s => {
-            const n = Learn.due(learn.cards.filter(c => c.sid === s.id)).length;
-            return `<div class="list-item"><span class="dot" style="background:var(--c-${s.color})"></span><span style="flex:1">${esc(s.name)}</span>
+          ${learn.subjects.length ? `<div class="list">${Learn.ordered(learn.subjects)
+            .map(s => ({ s, n: Learn.due(learn.cards.filter(c => c.sid === s.id)).length }))
+            .sort((a, b) => (b.n > 0) - (a.n > 0)).slice(0, 5).map(({ s, n }) => {
+            return `<div class="list-item"><span class="dot" style="background:var(--c-${s.color})"></span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(s.name)}">${s.lf ? '<b>LF ' + s.lf + '</b> ' : ''}${esc(Learn.short(s))}</span>
               ${n ? `<span class="tag warn">${n} fällig</span>` : `<span class="tag ok">✓</span>`}</div>`;
           }).join('')}</div>` : `<a class="btn sm" href="#/learn">Fächer anlegen</a>`}
         </div>
